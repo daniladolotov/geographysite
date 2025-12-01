@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Manya — I love you!</title>
+    <style>
+      :root{
+        --bg: linear-gradient(135deg,#fdfbfb 0%, #ebedee 100%);
+        --accent: #ff4d8b;
+      }
+      html,body{height:100%;}
+      body{
+        margin:0;
+        height:100%;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        background:var(--bg);
+        font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', 'Helvetica Neue', Arial;
+      }
+      .card{
+        padding:2rem 3rem;
+        border-radius:16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.07);
+        background: rgba(255,255,255,0.9);
+        text-align:center;
+      }
+      .title{
+        font-size: clamp(32px, 10vw, 120px);
+        line-height: 1.02;
+        margin:0;
+        color: #222;
+        letter-spacing: -0.02em;
+        text-shadow: 0 6px 20px rgba(255,77,139,0.08);
+      }
+      .title .heart{ color:var(--accent); }
+      .subtitle{ margin-top:0.5rem; font-size:1rem; color:#666; }
+      @media (max-width:480px){
+        .card{ padding:1rem 1.25rem; }
+      }
+    </style>
+  </head>
+  <body>
+      <div class="card">
+      <h1 class="title">Manya I love you!</h1>
+      <div class="subtitle">A big, bold message — open this file in your browser to view</div>
+    </div>
+  </body>
+</html>
