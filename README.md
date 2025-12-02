@@ -13,6 +13,7 @@ Open `index.html` in your browser to see the new blue & white theme, the improve
  - The map includes a layer switcher (top-right on the map) so you can switch between CartoDB Positron (light) and OpenStreetMap tiles.
  - Site colors: the accent color is a modern blue (used for CTAs and highlights).
  - The background uses a gently animated blue gradient to give a subtle 'moving sea' effect. If you find it too active, I can slow it down further or remove it.
+ - The background uses two animated gradient layers that change slowly and randomly (angles, color shades, speed) to create a dynamic 'living sea' feeling. If you'd like it even more lively (or slower), tell me which you'd prefer.
 
 ### Try it locally
 If you'd like the down arrow to link to a separate HTML page instead of the second section, to add a hamburger menu for the nav on mobile, or to make the nav highlight the active section, tell me and I can implement that.

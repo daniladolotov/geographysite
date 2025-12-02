@@ -6,9 +6,9 @@
   <title>It's my first site — Manya</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{ --bg-left: #02204a; --bg-right: #2563eb; --bg: linear-gradient(135deg, var(--bg-left) 0%, var(--bg-right) 100%); --card: #ffffff; --accent: #2563eb; --muted:#cbd5e1; --text:#ffffff; --card-text:#061122; }
+    :root{ --bg-left: #02204a; --bg-right: #2563eb; --bg: linear-gradient(135deg, var(--bg-left) 0%, var(--bg-right) 100%); --card: #ffffff; --accent: #2563eb; --muted:#cbd5e1; --text:#ffffff; --card-text:#061122; --bg-layer1-angle: 120deg; --bg-layer2-angle: 260deg; --bg-dur1: 40s; --bg-dur2: 60s; --bg-size: 240% 240%; }
     *{ box-sizing:border-box; }
-    html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', Helvetica, Arial; background:var(--bg); color:var(--text); background-size: 240% 240%; animation: bgFloat 40s ease-in-out infinite; }
+    html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', Helvetica, Arial; background-image: linear-gradient(var(--bg-layer1-angle), var(--bg-left), var(--bg-right)), linear-gradient(var(--bg-layer2-angle), rgba(255,255,255,0.04), rgba(255,255,255,0.02)); background-size: var(--bg-size); animation: bgFloat1 var(--bg-dur1) linear infinite, bgFloat2 var(--bg-dur2) linear infinite; color:var(--text); }
     .site-nav{ position:fixed; top:0; left:0; right:0; display:flex; align-items:center; height:64px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.03); padding:0 1rem; z-index:999; }
     .nav-inner{ max-width:1100px; width:100%; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
     .brand{ font-weight:700; text-decoration:none; color:var(--accent); letter-spacing:-0.01em; }
@@ -21,7 +21,7 @@
     .btn{ display:inline-block; padding:10px 16px; border-radius:10px; background:var(--accent); color:white; text-decoration:none; font-weight:700; box-shadow:0 8px 20px rgba(37,99,235,0.12); }
     .back{ margin-top:18px }
     @media (max-width:640px){ .panel{ padding:20px } }
-    @keyframes bgFloat{ 0%{ background-position:0% 50% } 50%{ background-position:100% 50% } 100%{ background-position:0% 50% } }
+    @keyframes bgFloat1{ 0%{ background-position:0% 50% } 50%{ background-position:100% 50% } 100%{ background-position:0% 50% } }    @keyframes bgFloat2{ 0%{ background-position:100% 60% } 50%{ background-position:0% 40% } 100%{ background-position:100% 60% } }
   </style>
 </head>
 <body>
@@ -39,5 +39,37 @@
       <div class="back"><a href="index.html">← Back to Home</a></div>
     </div>
   </main>
+  <script>
+    (function(){
+      var root = document.documentElement;
+      function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+      function pickHue(base, spread){var h = (base + (Math.random()-0.5)*spread)|0; return h}
+      function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)'}
+      function randomizeBg(){
+        var h1 = pickHue(215, 30);
+        var h2 = pickHue(195, 40);
+        var s1 = rand(70,90);
+        var s2 = rand(60,85);
+        var l1 = rand(28,48);
+        var l2 = rand(40,58);
+        var left = hsl(h1,s1,l1);
+        var right = hsl(h2,s2,l2);
+        root.style.setProperty('--bg-left', left);
+        root.style.setProperty('--bg-right', right);
+        var a1 = rand(0,360)+'deg';
+        var a2 = rand(0,360)+'deg';
+        root.style.setProperty('--bg-layer1-angle', a1);
+        root.style.setProperty('--bg-layer2-angle', a2);
+        var d1 = rand(30,90)+'s';
+        var d2 = rand(40,120)+'s';
+        root.style.setProperty('--bg-dur1', d1);
+        root.style.setProperty('--bg-dur2', d2);
+        var size = rand(160,420)+'% 240%';
+        root.style.setProperty('--bg-size', size);
+      }
+      randomizeBg();
+      setInterval(randomizeBg, 14000 + Math.random()*8000);
+    })();
+  </script>
 </body>
 </html>
