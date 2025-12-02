@@ -27,6 +27,9 @@
           padding-top:64px; /* leave room for sticky nav */
           background:var(--bg);
           color:var(--text);
+          /* animate gradient background slowly for living blue sea effect */
+          background-size: 240% 240%;
+          animation: bgFloat 40s ease-in-out infinite;
           font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', 'Helvetica Neue', Arial;
         }
         /* sections */
@@ -123,6 +126,12 @@
         .nav-open .nav-links{ display:flex }
         .nav-links a{ margin-left:0; }
       }
+      /* animate background */
+      @keyframes bgFloat{
+        0%{ background-position: 0% 50%; }
+        50%{ background-position: 100% 50%; }
+        100%{ background-position: 0% 50%; }
+      }
     </style>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -134,7 +143,7 @@
             <button class="hamburger" aria-label="Toggle navigation">☰</button>
             <div class="nav-links">
               <a href="#hero">Home</a>
-              <a href="#next">About</a>
+              <a href="#page2">About</a>
               <a href="#map">Map</a>
             </div>
           </div>

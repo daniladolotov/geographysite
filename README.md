@@ -9,8 +9,10 @@ Open `index.html` in your browser to see the new blue & white theme, the improve
  - The navigation is styled simply and becomes compact on small screens.
  - The site includes an interactive map (Map section) using Leaflet + OpenStreetMap tiles. Pan, zoom, and click the marker to open a popup.
  - The responsive navigation includes `Home`, `About` and `Map` links; the previous Page 2 nav link has been removed. `page2.html` can still be opened directly if you prefer a standalone view.
+ - The responsive navigation includes `Home`, `About` (links to the embedded 'Page 2' section) and `Map`.
  - The map includes a layer switcher (top-right on the map) so you can switch between CartoDB Positron (light) and OpenStreetMap tiles.
  - Site colors: the accent color is a modern blue (used for CTAs and highlights).
+ - The background uses a gently animated blue gradient to give a subtle 'moving sea' effect. If you find it too active, I can slow it down further or remove it.
 
 ### Try it locally
 If you'd like the down arrow to link to a separate HTML page instead of the second section, to add a hamburger menu for the nav on mobile, or to make the nav highlight the active section, tell me and I can implement that.

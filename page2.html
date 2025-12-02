@@ -8,11 +8,11 @@
   <style>
     :root{ --bg-left: #02204a; --bg-right: #2563eb; --bg: linear-gradient(135deg, var(--bg-left) 0%, var(--bg-right) 100%); --card: #ffffff; --accent: #2563eb; --muted:#cbd5e1; --text:#ffffff; --card-text:#061122; }
     *{ box-sizing:border-box; }
-    html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', Helvetica, Arial; background:var(--bg); color:var(--text)}
+    html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', Helvetica, Arial; background:var(--bg); color:var(--text); background-size: 240% 240%; animation: bgFloat 40s ease-in-out infinite; }
     .site-nav{ position:fixed; top:0; left:0; right:0; display:flex; align-items:center; height:64px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.03); padding:0 1rem; z-index:999; }
     .nav-inner{ max-width:1100px; width:100%; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
     .brand{ font-weight:700; text-decoration:none; color:var(--accent); letter-spacing:-0.01em; }
-    .nav-links{ display:flex; gap:1.5rem; }
+    .nav-links{ display:flex; gap:2rem; }
     .nav-links a{ text-decoration:none; color:var(--muted); font-weight:600 }
     .hero{ display:flex; align-items:center; justify-content:center; min-height:calc(100vh - 64px); padding:2rem; }
     .panel{ width:100%; max-width:900px; background: var(--card); border-radius:14px; padding:48px; box-shadow: 0 10px 35px rgba(2,6,23,0.3); text-align:center }
@@ -21,6 +21,7 @@
     .btn{ display:inline-block; padding:10px 16px; border-radius:10px; background:var(--accent); color:white; text-decoration:none; font-weight:700; box-shadow:0 8px 20px rgba(37,99,235,0.12); }
     .back{ margin-top:18px }
     @media (max-width:640px){ .panel{ padding:20px } }
+    @keyframes bgFloat{ 0%{ background-position:0% 50% } 50%{ background-position:100% 50% } 100%{ background-position:0% 50% } }
   </style>
 </head>
 <body>
