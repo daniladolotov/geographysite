@@ -6,7 +6,7 @@
   <title>It's my first site — Manya</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{ --bg: #000000; --card: #071024; --accent: #2563eb; --muted:#cbd5e1; --text:#ffffff; }
+    :root{ --bg-left: #02204a; --bg-right: #2563eb; --bg: linear-gradient(135deg, var(--bg-left) 0%, var(--bg-right) 100%); --card: #ffffff; --accent: #2563eb; --muted:#cbd5e1; --text:#ffffff; --card-text:#061122; }
     *{ box-sizing:border-box; }
     html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', Helvetica, Arial; background:var(--bg); color:var(--text)}
     .site-nav{ position:fixed; top:0; left:0; right:0; display:flex; align-items:center; height:64px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.03); padding:0 1rem; z-index:999; }
@@ -15,8 +15,8 @@
     .nav-links{ display:flex; gap:1.5rem; }
     .nav-links a{ text-decoration:none; color:var(--muted); font-weight:600 }
     .hero{ display:flex; align-items:center; justify-content:center; min-height:calc(100vh - 64px); padding:2rem; }
-    .panel{ width:100%; max-width:900px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02)); border-radius:14px; padding:48px; box-shadow: 0 10px 35px rgba(2,6,23,0.4); text-align:center }
-    h1{ font-size:clamp(20px,5vw,40px); margin:0 0 12px 0; color:var(--text) }
+    .panel{ width:100%; max-width:900px; background: var(--card); border-radius:14px; padding:48px; box-shadow: 0 10px 35px rgba(2,6,23,0.3); text-align:center }
+    h1{ font-size:clamp(20px,5vw,40px); margin:0 0 12px 0; color:var(--card-text) }
     p{ margin:0 0 18px 0; color:var(--muted) }
     .btn{ display:inline-block; padding:10px 16px; border-radius:10px; background:var(--accent); color:white; text-decoration:none; font-weight:700; box-shadow:0 8px 20px rgba(37,99,235,0.12); }
     .back{ margin-top:18px }
