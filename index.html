@@ -9,11 +9,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
       :root{
-        --bg: linear-gradient(180deg,#fbfdff 0%, #f2f6ff 100%);
-        --card: #ffffff;
+        --bg: #000000;
+        --card: #071024; /* very dark card */
         --accent: #2563eb; /* modern blue */
-        --muted: #64748b;
-        --glass: rgba(255,255,255,0.75);
+        --muted: #cbd5e1; /* light muted */
+        --glass: rgba(255,255,255,0.03);
+        --text: #ffffff;
       }
         html,body{height:100%; scroll-behavior:smooth;}
         body{
@@ -21,6 +22,7 @@
           min-height:100%;
           padding-top:64px; /* leave room for sticky nav */
           background:var(--bg);
+          color:var(--text);
           font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', 'Helvetica Neue', Arial;
         }
         /* sections */
@@ -39,7 +41,7 @@
         left:0;
         right:0;
         height:64px;
-        background:var(--glass);
+        background:color-mix(in srgb, var(--glass) 60%, #000 40%);
         backdrop-filter: blur(6px);
         border-bottom: 1px solid rgba(15,23,42,0.04);
         z-index:999;
@@ -48,18 +50,19 @@
       }
       .nav-inner{ width:100%; max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 1rem; }
       .site-nav .brand{ font-weight:700; color:var(--accent); text-decoration:none; font-size:1.05rem; }
-      .site-nav .links a{ margin-left:1rem; color:var(--muted); text-decoration:none; font-weight:600; padding:6px 10px; border-radius:8px; }
-      .site-nav .links a:hover{ color:var(--accent); background:rgba(37,99,235,0.06); }
+      .nav-links{ display:flex; gap:1.5rem; align-items:center }
+      .nav-links a{ color:var(--muted); text-decoration:none; font-weight:600; padding:6px 10px; border-radius:8px; }
+      .nav-links a:hover{ color:var(--accent); background:rgba(37,99,235,0.06); }
       .nav-cta{ background:var(--accent); color:white; padding:8px 12px; border-radius:10px; font-weight:700; text-decoration:none; box-shadow:0 6px 18px rgba(37,99,235,0.12); }
       @media (max-width:600px){
-        .site-nav .links a{ display:none; }
+        .nav-links a{ display:none; }
         .nav-inner{ padding:0 0.75rem; }
       }
       .card{
         padding:2rem 3rem;
         border-radius:16px;
-        box-shadow: 0 10px 30px rgba(2,6,23,0.06);
-        background: var(--card);
+        box-shadow: 0 18px 50px rgba(2,6,23,0.6);
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02));
         text-align:center;
       }
       .next-section{ /* section below the hero */
@@ -75,7 +78,7 @@
         font-size: clamp(32px, 10vw, 120px);
         line-height: 1.02;
         margin:0;
-        color: #0b1220;
+        color: var(--text);
         letter-spacing: -0.02em;
         text-shadow: 0 8px 30px rgba(12,13,20,0.035);
       }
@@ -110,7 +113,7 @@
         .hamburger{ display:block }
         .nav-links{ position:absolute; top:64px; left:0; right:0; background:var(--card); display:none; flex-direction:column; padding:0.5rem 1rem; gap:0.5rem; box-shadow:0 10px 30px rgba(2,6,23,0.06); }
         .nav-open .nav-links{ display:flex }
-        .site-nav .links a{ margin-left:0; }
+        .nav-links a{ margin-left:0; }
       }
     </style>
     <!-- Leaflet JS -->
@@ -125,19 +128,40 @@
               <a href="#hero">Home</a>
               <a href="#next">About</a>
               <a href="#map">Map</a>
-              <a class="nav-cta" href="page2.html">Next page</a>
+              <a href="#page2">Page 2</a>
             </div>
           </div>
       </nav>
       <section class="hero" id="hero">
         <div class="card">
-          <h1 class="title hide">Hi — geography ✨</h1>
-          <div class="subtitle">A small project showing basic web features: hero, navigation, map, and a second page.</div>
+          <h1 class="title hide">Hi — geography!</h1>
+          <div class="subtitle">It's my first project!</div>
           <div style="margin-top:18px;">
-            <a class="nav-cta" href="page2.html">Next page</a>
+            <a class="nav-cta" href="#map">Explore the map</a>
           </div>
         </div>
         <a class="down-arrow" href="#next" aria-label="Scroll down">⬇</a>
+      </section>
+
+      <!-- Map section -->
+      <section id="map" class="next-section" aria-label="Map section">
+        <div class="card" style="width:100%; max-width:1100px;">
+          <h2 style="margin:0; font-size:clamp(18px,4vw,30px);">Interactive map</h2>
+          <p style="color:var(--muted); max-width:55ch; margin-top:0.75rem;">This interactive map is powered by Leaflet. Use the layer switcher to change the base layer.</p>
+          <div id="map" style="margin-top:1rem;"></div>
+        </div>
+      </section>
+
+      <!-- Embedded Page 2: so the site can be scrolled down to this 'page' -->
+      <section id="page2" class="next-section" aria-label="Embedded Page 2">
+        <div class="card" style="width:100%; max-width:900px;">
+          <h2 style="margin:0; font-size:clamp(18px,4vw,30px);">It's my first site related to coding! Hurrah... (help)</h2>
+          <p style="color:var(--muted); max-width:55ch; margin-top:0.75rem;">This is the second page embedded directly in the homepage so you can scroll to it smoothly from the nav. Use the navigation to move between sections or the 'Explore the map' CTA.</p>
+          <div style="margin-top:18px;">
+            <a class="nav-cta" href="#hero">Back to top</a>
+            <a class="nav-cta" href="page2.html" style="margin-left:8px; background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.04);">Open page2.html</a>
+          </div>
+        </div>
       </section>
 
       <script>
@@ -162,7 +186,7 @@
 
               // Add marker and popup
               var marker = L.marker(defaultLatLng).addTo(map);
-              marker.bindPopup('<strong>Manya I love you!</strong>').openPopup();
+              marker.bindPopup('<strong>Welcome to the map!</strong>').openPopup();
 
             // Try to locate user (permission-based)
             map.locate({ setView: false, maxZoom: 16 });
