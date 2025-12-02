@@ -3,13 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Manya I love you!</title>
+    <title>Hi its geography!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
       :root{
-        --bg: linear-gradient(135deg,#fdfbfb 0%, #ebedee 100%);
-        --accent: #ff4d8b;
+        --bg: linear-gradient(180deg,#fbfdff 0%, #f2f6ff 100%);
+        --card: #ffffff;
+        --accent: #2563eb; /* modern blue */
+        --muted: #64748b;
+        --glass: rgba(255,255,255,0.75);
       }
         html,body{height:100%; scroll-behavior:smooth;}
         body{
@@ -35,17 +39,18 @@
         left:0;
         right:0;
         height:64px;
-        background: rgba(255,255,255,0.85);
+        background:var(--glass);
         backdrop-filter: blur(6px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border-bottom: 1px solid rgba(15,23,42,0.04);
         z-index:999;
         display:flex;
         align-items:center;
       }
       .nav-inner{ width:100%; max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 1rem; }
-      .site-nav .brand{ font-weight:700; color:#222; text-decoration:none; font-size:1rem; }
-      .site-nav .links a{ margin-left:1rem; color:#222; text-decoration:none; font-weight:600; }
-      .site-nav .links a:hover{ color:var(--accent); }
+      .site-nav .brand{ font-weight:700; color:var(--accent); text-decoration:none; font-size:1.05rem; }
+      .site-nav .links a{ margin-left:1rem; color:var(--muted); text-decoration:none; font-weight:600; padding:6px 10px; border-radius:8px; }
+      .site-nav .links a:hover{ color:var(--accent); background:rgba(37,99,235,0.06); }
+      .nav-cta{ background:var(--accent); color:white; padding:8px 12px; border-radius:10px; font-weight:700; text-decoration:none; box-shadow:0 6px 18px rgba(37,99,235,0.12); }
       @media (max-width:600px){
         .site-nav .links a{ display:none; }
         .nav-inner{ padding:0 0.75rem; }
@@ -53,8 +58,8 @@
       .card{
         padding:2rem 3rem;
         border-radius:16px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.07);
-        background: rgba(255,255,255,0.9);
+        box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+        background: var(--card);
         text-align:center;
       }
       .next-section{ /* section below the hero */
@@ -70,12 +75,12 @@
         font-size: clamp(32px, 10vw, 120px);
         line-height: 1.02;
         margin:0;
-        color: #222;
+        color: #0b1220;
         letter-spacing: -0.02em;
-        text-shadow: 0 6px 20px rgba(255,77,139,0.08);
+        text-shadow: 0 8px 30px rgba(12,13,20,0.035);
       }
       .title .heart{ color:var(--accent); }
-      .subtitle{ margin-top:0.5rem; font-size:1rem; color:#666; }
+      .subtitle{ margin-top:0.5rem; font-size:1rem; color:var(--muted); }
       @media (max-width:480px){
         .card{ padding:1rem 1.25rem; }
       }
@@ -85,77 +90,102 @@
         bottom: 24px;
         left:50%;
         transform: translateX(-50%);
-        background: rgba(255,255,255,0.8);
+        background: rgba(255,255,255,0.92);
         border-radius: 999px;
         padding:6px 10px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        box-shadow: 0 12px 30px rgba(2,6,23,0.06);
         text-decoration:none;
-        color:#222;
+        color:var(--accent);
         font-size:20px;
       }
-      .down-arrow:hover{ transform: translateX(-50%) translateY(-2px); }
+      .down-arrow:hover{ transform: translateX(-50%) translateY(-4px); }
+      /* modern hero text animation */
+      .title{ transform-origin:center; transition: transform 450ms cubic-bezier(.2,.9,.3,1), opacity 350ms ease; }
+      .title.show{ transform:translateY(0) scale(1); opacity:1; }
+      .title.hide{ transform:translateY(6px) scale(0.995); opacity:0.95; }
+      /* Nav mobile toggle */
+      .hamburger{ display:none; background:none; border:none; font-size:20px; color:var(--muted); }
+      .nav-links{ display:flex; align-items:center; }
+      @media (max-width:700px){
+        .hamburger{ display:block }
+        .nav-links{ position:absolute; top:64px; left:0; right:0; background:var(--card); display:none; flex-direction:column; padding:0.5rem 1rem; gap:0.5rem; box-shadow:0 10px 30px rgba(2,6,23,0.06); }
+        .nav-open .nav-links{ display:flex }
+        .site-nav .links a{ margin-left:0; }
+      }
     </style>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   </head>
   <body>
       <nav class="site-nav" role="navigation">
-        <div class="nav-inner">
-          <a class="brand" href="#hero">Manya</a>
-              <div class="links">
-            <a href="#hero">Home</a>
-            <a href="#next">About</a>
-            <a href="#map">Map</a>
+          <div class="nav-inner">
+            <a class="brand" href="#hero">Geography</a>
+            <button class="hamburger" aria-label="Toggle navigation">☰</button>
+            <div class="nav-links">
+              <a href="#hero">Home</a>
+              <a href="#next">About</a>
+              <a href="#map">Map</a>
+              <a class="nav-cta" href="page2.html">Next page</a>
+            </div>
           </div>
-        </div>
       </nav>
       <section class="hero" id="hero">
         <div class="card">
-          <h1 class="title">Manya I love you!</h1>
-          <div class="subtitle">A big, bold message — click the arrow to scroll down</div>
+          <h1 class="title hide">Hi — geography ✨</h1>
+          <div class="subtitle">A small project showing basic web features: hero, navigation, map, and a second page.</div>
+          <div style="margin-top:18px;">
+            <a class="nav-cta" href="page2.html">Next page</a>
+          </div>
         </div>
         <a class="down-arrow" href="#next" aria-label="Scroll down">⬇</a>
       </section>
 
-      <section id="next" class="next-section">
-        <div class="card">
-          <h2 style="margin:0; font-size:clamp(18px,4vw,30px);">More about the site</h2>
-          <p style="color:#555; max-width:55ch; margin-top:0.75rem;">This is the second section; you can place more content here, or make it a separate page. Use the <a href="#hero">back to top</a> link to return.</p>
-        </div>
-      </section>
-
-      <section id="map" class="next-section" aria-label="Map section">
-        <div class="card" style="width:100%; max-width:1100px;">
-          <h2 style="margin:0; font-size:clamp(18px,4vw,30px);">Interactive map</h2>
-          <p style="color:#555; max-width:55ch; margin-top:0.75rem;">This interactive map is powered by Leaflet with OpenStreetMap tiles. Click or pinch to zoom and drag to move the map.</p>
-          <div id="map" style="margin-top:1rem;"></div>
-        </div>
-      </section>
       <script>
         // Basic Leaflet map initialization
         (function(){
           try {
             var defaultLatLng = [51.505, -0.09]; // London
             var map = L.map('map', { scrollWheelZoom:true }).setView(defaultLatLng, 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Base layers
+            var cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+              maxZoom: 19,
+              attribution: '© OpenStreetMap, © CartoDB'
+            });
+            var openStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19,
               attribution: '© OpenStreetMap'
-            }).addTo(map);
+            });
+            // Add default base
+            cartoPositron.addTo(map);
+            var baseMaps = { 'CartoDB Positron': cartoPositron, 'OpenStreetMap': openStreet };
+            L.control.layers(baseMaps, null, { collapsed: false }).addTo(map);
 
-            // Add marker and popup
-            var marker = L.marker(defaultLatLng).addTo(map);
-            marker.bindPopup('<strong>Manya I love you!</strong>').openPopup();
+              // Add marker and popup
+              var marker = L.marker(defaultLatLng).addTo(map);
+              marker.bindPopup('<strong>Manya I love you!</strong>').openPopup();
 
             // Try to locate user (permission-based)
             map.locate({ setView: false, maxZoom: 16 });
             map.on('locationfound', function(e){
-              L.circle(e.latlng, { radius: e.accuracy/2, color: 'var(--accent)' }).addTo(map);
+              var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+              L.circle(e.latlng, { radius: e.accuracy/2, color: accent || '#2563eb' }).addTo(map);
             });
           } catch (err) {
             // If Leaflet is not loaded, log the error
             console.warn('Leaflet failed to initialize', err);
           }
         })();
+          // Small UI JS for toggle and intro animation
+          (function(){
+            var hamburger = document.querySelector('.hamburger');
+            var nav = document.querySelector('.site-nav');
+            if(hamburger && nav){
+              hamburger.addEventListener('click', function(){ nav.classList.toggle('nav-open'); });
+            }
+            // animate title in
+            var title = document.querySelector('.title');
+            if(title){ setTimeout(function(){ title.classList.remove('hide'); title.classList.add('show'); }, 80); }
+          })();
       </script>
   </body>
 </html>
