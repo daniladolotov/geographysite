@@ -32,12 +32,6 @@
           padding-top:64px; /* leave room for sticky nav */
           background:var(--bg);
           color:var(--text);
-          /* animate gradient background slowly for living blue sea effect */
-          background-image:
-            linear-gradient(var(--bg-layer1-angle), var(--bg-left), var(--bg-right)),
-            linear-gradient(var(--bg-layer2-angle), rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-          background-size: var(--bg-size);
-          animation: bgFloat1 var(--bg-dur1) linear infinite, bgFloat2 var(--bg-dur2) linear infinite;
           font-family:Inter, system-ui, -apple-system, Roboto, 'Segoe UI', 'Helvetica Neue', Arial;
         }
         /* sections */
@@ -93,6 +87,35 @@
       }
       /* map */
       #map { width:100%; height:60vh; min-height:300px; border-radius:12px; }
+      /* Background video */
+      .bg-video-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+      }
+      .bg-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+      .bg-video-fallback {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+        background-image:
+          linear-gradient(var(--bg-layer1-angle), var(--bg-left), var(--bg-right)),
+          linear-gradient(var(--bg-layer2-angle), rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        background-size: var(--bg-size);
+        animation: bgFloat1 var(--bg-dur1) linear infinite, bgFloat2 var(--bg-dur2) linear infinite;
+      }
       .title{
         font-size: clamp(32px, 10vw, 120px);
         line-height: 1.02;
@@ -150,6 +173,14 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   </head>
   <body>
+      <!-- Background video with fallback gradient -->
+      <div class="bg-video-container">
+        <video class="bg-video" autoplay muted loop playsinline disablePictureInPicture>
+          <source src="background.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="bg-video-fallback"></div>
+      
       <nav class="site-nav" role="navigation">
           <div class="nav-inner">
             <a class="brand" href="#hero">Geography</a>
