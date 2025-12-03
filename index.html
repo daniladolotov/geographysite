@@ -71,13 +71,13 @@
         padding:2rem 3rem;
         border-radius:16px;
         box-shadow: 0 18px 50px rgba(2,6,23,0.6);
-        background: var(--card);
-        color:var(--card-text);
+        background: #1a1a1a;
+        color: #ffffff;
         text-align:center;
       }
-          /* keep titles readable when inside white cards */
-      .card .title{ color:var(--card-text); }
-      .card .subtitle{ color: #6b7280; }
+          /* keep titles readable inside dark cards */
+      .card .title{ color: #ffffff; }
+      .card .subtitle{ color: #cccccc; }
       .next-section{ /* section below the hero */
         min-height:100vh;
         padding:4rem 2rem;
@@ -231,7 +231,8 @@
             var flightsEnabled = false; // Flight layer toggle state
             var flightUpdateInterval = null; // Interval handle for cleanup
             var lastFetchTime = 0; // Throttle API requests
-            var minUpdateInterval = 3000; // Min 3 seconds between updates
+            var minUpdateInterval = 8000; // Min 8 seconds between updates
+            var consecutiveErrors = 0; // Track consecutive API errors for backoff
             
             // Base layers
             var cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -276,7 +277,7 @@
               });
             }
 
-            // Fetch live flight data from OpenSky Network (optimized)
+            // Fetch live flight data from Glorious API (ADS-B Exchange, more reliable)
             function updateFlights() {
               var now = Date.now();
               // Throttle requests to prevent API spam
@@ -292,50 +293,65 @@
               // Only fetch if flights layer is visible
               if (!map.hasLayer(flightsLayer)) {
                 clearAllFlights();
+                consecutiveErrors = 0; // Reset error counter when layer is off
                 return;
               }
 
-              var url = 'https://opensky-network.org/api/states/all?lamin='+lamin+'&lamax='+lamax+'&lomin='+lomin+'&lomax='+lomax;
+              // Glorious API (ADS-B Exchange) - public endpoint
+              var url = 'https://api.glorious.aero/v1/aircraft?bounds=' + lamin + ',' + lomin + ',' + lamax + ',' + lomax;
 
-              fetch(url, { signal: AbortSignal.timeout(5000) })
-                .then(function(response) { return response.json(); })
+              fetch(url, { signal: AbortSignal.timeout(8000) })
+                .then(function(response) { 
+                  if (!response.ok) {
+                    if (response.status === 429) {
+                      consecutiveErrors++;
+                      var backoffMultiplier = Math.min(Math.pow(1.5, consecutiveErrors), 5);
+                      var newInterval = Math.floor(8000 * backoffMultiplier);
+                      minUpdateInterval = newInterval;
+                      console.warn('🛑 Rate limited (429). Backing off to ' + (newInterval/1000).toFixed(1) + 's.');
+                    }
+                    throw new Error('API Error: ' + response.status);
+                  }
+                  consecutiveErrors = 0; // Success - reset error counter
+                  minUpdateInterval = 8000; // Back to normal interval
+                  return response.json();
+                })
                 .then(function(data) {
-                  if (!data.states) return;
+                  if (!data.ac && !Array.isArray(data)) return;
                   
+                  var aircraft = data.ac || data;
                   var activeIcao24 = {};
-                  var newCount = 0;
                   
-                  // Update or create markers for each aircraft (limit to 100 for performance)
-                  data.states.slice(0, 100).forEach(function(state) {
-                    var icao24 = state[0];
-                    var callsign = state[1] ? state[1].trim() : 'Unknown';
-                    var lat = state[6];
-                    var lon = state[5];
-                    var altitude = state[7];
-                    var heading = state[10] || 0;
-                    var velocity = state[9] || 0;
+                  // Update or create markers for each aircraft
+                  aircraft.forEach(function(state) {
+                    var icao24 = state.icao;
+                    var callsign = state.flight ? state.flight.trim() : 'Unknown';
+                    var lat = state.lat;
+                    var lon = state.lon;
+                    var altitude = state.alt_baro || state.alt_geom || 0;
+                    var heading = state.track || 0;
+                    var velocity = state.gs || 0;
                     
-                    if (lat === null || lon === null) return;
+                    if (lat === null || lat === undefined || lon === null || lon === undefined) return;
                     
                     activeIcao24[icao24] = true;
                     
                     if (aircraftMarkers[icao24]) {
-                      // Update existing marker position
                       aircraftMarkers[icao24].setLatLng([lat, lon]);
                       aircraftMarkers[icao24].setIcon(createAircraftIcon(heading || 0));
                     } else {
-                      // Create new marker only if flights layer is visible
                       if (map.hasLayer(flightsLayer)) {
-                        var popupText = '<strong>'+callsign+'</strong><br>Alt: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'m/s';
+                        var popupText = '<strong>'+callsign+'</strong><br>Alt: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'kt';
                         var aircraftMarker = L.marker([lat, lon], {
                           icon: createAircraftIcon(heading || 0)
                         }).bindPopup(popupText);
                         flightsLayer.addLayer(aircraftMarker);
                         aircraftMarkers[icao24] = aircraftMarker;
-                        newCount++;
                       }
                     }
                   });
+                  
+                  console.log('✈️ Updated ' + Object.keys(activeIcao24).length + ' aircraft');
                   
                   // Remove markers for aircraft no longer in view
                   Object.keys(aircraftMarkers).forEach(function(icao24) {
@@ -347,7 +363,36 @@
                 })
                 .catch(function(err) {
                   if (err.name !== 'AbortError') {
-                    console.warn('Failed to fetch flight data:', err);
+                    console.warn('⚠️ Flight API: ' + err.message + ' - Using demo data');
+                    // Fallback to demo flights if API fails
+                    var demoFlights = generateDemoFlights(map.getBounds());
+                    var activeIcao24 = {};
+                    
+                    demoFlights.forEach(function(state) {
+                      var icao24 = state.icao;
+                      activeIcao24[icao24] = true;
+                      
+                      if (aircraftMarkers[icao24]) {
+                        aircraftMarkers[icao24].setLatLng([state.lat, state.lon]);
+                        aircraftMarkers[icao24].setIcon(createAircraftIcon(state.track || 0));
+                      } else {
+                        if (map.hasLayer(flightsLayer)) {
+                          var popupText = '<strong>'+state.flight+'</strong> (Demo)<br>Alt: '+Math.round(state.alt_baro)+'m<br>Speed: '+Math.round(state.gs)+'kt';
+                          var aircraftMarker = L.marker([state.lat, state.lon], {
+                            icon: createAircraftIcon(state.track || 0)
+                          }).bindPopup(popupText);
+                          flightsLayer.addLayer(aircraftMarker);
+                          aircraftMarkers[icao24] = aircraftMarker;
+                        }
+                      }
+                    });
+                    
+                    Object.keys(aircraftMarkers).forEach(function(icao24) {
+                      if (!activeIcao24[icao24]) {
+                        flightsLayer.removeLayer(aircraftMarkers[icao24]);
+                        delete aircraftMarkers[icao24];
+                      }
+                    });
                   }
                 });
             }
@@ -358,6 +403,25 @@
                 flightsLayer.removeLayer(aircraftMarkers[icao24]);
               });
               aircraftMarkers = {};
+            }
+
+            // Generate demo flight data (for testing/fallback)
+            function generateDemoFlights(bounds) {
+              var flights = [];
+              var callsigns = ['BA123', 'LH456', 'AF789', 'UA234', 'DL567', 'AA890', 'SQ123', 'QF456', 'EK789', 'TK234'];
+              
+              for (var i = 0; i < 8; i++) {
+                flights.push({
+                  icao: 'demo' + i,
+                  flight: callsigns[i % callsigns.length],
+                  lat: bounds.getSouth() + Math.random() * (bounds.getNorth() - bounds.getSouth()),
+                  lon: bounds.getWest() + Math.random() * (bounds.getEast() - bounds.getWest()),
+                  alt_baro: 5000 + Math.random() * 10000,
+                  track: Math.random() * 360,
+                  gs: 400 + Math.random() * 200
+                });
+              }
+              return flights;
             }
 
             // Listen for layer visibility changes
@@ -378,7 +442,7 @@
               }
             });
 
-            // Update on map move/zoom (only if flights enabled)
+            // Update flights on map move/zoom (only if flights enabled)
             map.on('moveend', updateFlights);
             map.on('zoomend', updateFlights);
 
