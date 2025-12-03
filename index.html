@@ -191,12 +191,16 @@
       </section>
 
       <script>
-        // Leaflet map with live flight data from OpenSky Network
+        // Leaflet map with live flight data from OpenSky Network (toggleable layer)
         (function(){
           try {
             var defaultLatLng = [51.505, -0.09]; // London
             var map = L.map('map', { scrollWheelZoom:true }).setView(defaultLatLng, 13);
             var aircraftMarkers = {}; // Store aircraft markers by ICAO24 code
+            var flightsEnabled = false; // Flight layer toggle state
+            var flightUpdateInterval = null; // Interval handle for cleanup
+            var lastFetchTime = 0; // Throttle API requests
+            var minUpdateInterval = 3000; // Min 3 seconds between updates
             
             // Base layers
             var cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -210,7 +214,12 @@
             // Add default base
             cartoPositron.addTo(map);
             var baseMaps = { 'CartoDB Positron': cartoPositron, 'OpenStreetMap': openStreet };
-            L.control.layers(baseMaps, null, { collapsed: false }).addTo(map);
+            
+            // Create a feature group for flights (toggleable layer)
+            var flightsLayer = L.featureGroup([]);
+            var overlayMaps = { 'Live Flights': flightsLayer };
+            
+            var layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
             // Add marker and popup
             var marker = L.marker(defaultLatLng).addTo(map);
@@ -236,26 +245,37 @@
               });
             }
 
-            // Fetch live flight data from OpenSky Network
+            // Fetch live flight data from OpenSky Network (optimized)
             function updateFlights() {
+              var now = Date.now();
+              // Throttle requests to prevent API spam
+              if (now - lastFetchTime < minUpdateInterval) return;
+              lastFetchTime = now;
+              
               var bounds = map.getBounds();
               var lamin = bounds.getSouth();
               var lamax = bounds.getNorth();
               var lomin = bounds.getWest();
               var lomax = bounds.getEast();
 
-              // OpenSky API endpoint (no auth required for basic usage)
+              // Only fetch if flights layer is visible
+              if (!map.hasLayer(flightsLayer)) {
+                clearAllFlights();
+                return;
+              }
+
               var url = 'https://opensky-network.org/api/states/all?lamin='+lamin+'&lamax='+lamax+'&lomin='+lomin+'&lomax='+lomax;
 
-              fetch(url)
+              fetch(url, { signal: AbortSignal.timeout(5000) })
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                   if (!data.states) return;
                   
                   var activeIcao24 = {};
+                  var newCount = 0;
                   
-                  // Update or create markers for each aircraft
-                  data.states.forEach(function(state) {
+                  // Update or create markers for each aircraft (limit to 100 for performance)
+                  data.states.slice(0, 100).forEach(function(state) {
                     var icao24 = state[0];
                     var callsign = state[1] ? state[1].trim() : 'Unknown';
                     var lat = state[6];
@@ -269,40 +289,69 @@
                     activeIcao24[icao24] = true;
                     
                     if (aircraftMarkers[icao24]) {
-                      // Update existing marker
+                      // Update existing marker position
                       aircraftMarkers[icao24].setLatLng([lat, lon]);
                       aircraftMarkers[icao24].setIcon(createAircraftIcon(heading || 0));
                     } else {
-                      // Create new marker
-                      var marker = L.marker([lat, lon], {
-                        icon: createAircraftIcon(heading || 0)
-                      }).bindPopup('<strong>'+callsign+'</strong><br>Altitude: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'m/s');
-                      marker.addTo(map);
-                      aircraftMarkers[icao24] = marker;
+                      // Create new marker only if flights layer is visible
+                      if (map.hasLayer(flightsLayer)) {
+                        var popupText = '<strong>'+callsign+'</strong><br>Alt: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'m/s';
+                        var aircraftMarker = L.marker([lat, lon], {
+                          icon: createAircraftIcon(heading || 0)
+                        }).bindPopup(popupText);
+                        flightsLayer.addLayer(aircraftMarker);
+                        aircraftMarkers[icao24] = aircraftMarker;
+                        newCount++;
+                      }
                     }
                   });
                   
                   // Remove markers for aircraft no longer in view
                   Object.keys(aircraftMarkers).forEach(function(icao24) {
                     if (!activeIcao24[icao24]) {
-                      map.removeLayer(aircraftMarkers[icao24]);
+                      flightsLayer.removeLayer(aircraftMarkers[icao24]);
                       delete aircraftMarkers[icao24];
                     }
                   });
                 })
                 .catch(function(err) {
-                  console.warn('Failed to fetch flight data:', err);
+                  if (err.name !== 'AbortError') {
+                    console.warn('Failed to fetch flight data:', err);
+                  }
                 });
             }
 
-            // Update flights on map move/zoom and every 5 seconds
+            // Clear all flight markers
+            function clearAllFlights() {
+              Object.keys(aircraftMarkers).forEach(function(icao24) {
+                flightsLayer.removeLayer(aircraftMarkers[icao24]);
+              });
+              aircraftMarkers = {};
+            }
+
+            // Listen for layer visibility changes
+            map.on('overlayadd', function(e) {
+              if (e.name === 'Live Flights') {
+                flightsEnabled = true;
+                updateFlights();
+                if (flightUpdateInterval) clearInterval(flightUpdateInterval);
+                flightUpdateInterval = setInterval(updateFlights, 5000); // Refresh every 5 seconds
+              }
+            });
+
+            map.on('overlayremove', function(e) {
+              if (e.name === 'Live Flights') {
+                flightsEnabled = false;
+                if (flightUpdateInterval) clearInterval(flightUpdateInterval);
+                clearAllFlights();
+              }
+            });
+
+            // Update on map move/zoom (only if flights enabled)
             map.on('moveend', updateFlights);
             map.on('zoomend', updateFlights);
-            updateFlights(); // Initial fetch
-            setInterval(updateFlights, 5000); // Refresh every 5 seconds
 
           } catch (err) {
-            // If Leaflet is not loaded, log the error
             console.warn('Leaflet failed to initialize', err);
           }
         })();
