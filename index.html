@@ -176,7 +176,6 @@
       <section id="map" class="next-section" aria-label="Map section">
         <div class="card" style="width:100%; max-width:1100px;">
           <h2 style="margin:0; font-size:clamp(18px,4vw,30px);">Interactive map</h2>
-          <p style="color:var(--muted); max-width:55ch; margin-top:0.75rem;">This interactive map is powered by Leaflet. Use the layer switcher to change the base layer.</p>
           <div id="map" style="margin-top:1rem;"></div>
         </div>
       </section>
@@ -192,11 +191,13 @@
       </section>
 
       <script>
-        // Basic Leaflet map initialization
+        // Leaflet map with live flight data from OpenSky Network
         (function(){
           try {
             var defaultLatLng = [51.505, -0.09]; // London
             var map = L.map('map', { scrollWheelZoom:true }).setView(defaultLatLng, 13);
+            var aircraftMarkers = {}; // Store aircraft markers by ICAO24 code
+            
             // Base layers
             var cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
               maxZoom: 19,
@@ -211,9 +212,9 @@
             var baseMaps = { 'CartoDB Positron': cartoPositron, 'OpenStreetMap': openStreet };
             L.control.layers(baseMaps, null, { collapsed: false }).addTo(map);
 
-              // Add marker and popup
-              var marker = L.marker(defaultLatLng).addTo(map);
-              marker.bindPopup('<strong>Welcome to the map!</strong>').openPopup();
+            // Add marker and popup
+            var marker = L.marker(defaultLatLng).addTo(map);
+            marker.bindPopup('<strong>Welcome to the map!</strong>').openPopup();
 
             // Try to locate user (permission-based)
             map.locate({ setView: false, maxZoom: 16 });
@@ -221,6 +222,85 @@
               var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
               L.circle(e.latlng, { radius: e.accuracy/2, color: accent || '#2563eb', fillColor: accent || '#2563eb', fillOpacity: 0.1 }).addTo(map);
             });
+
+            // Function to create yellow airplane icon (Flightradar style)
+            function createAircraftIcon(heading) {
+              var svg = '<svg width="24" height="24" viewBox="0 0 24 24" style="transform:rotate('+heading+'deg)" xmlns="http://www.w3.org/2000/svg">' +
+                '<path d="M12 2 L14 8 L20 10 L15 15 L16 21 L12 18 L8 21 L9 15 L4 10 L10 8 Z" fill="#FFD700" stroke="#FFA500" stroke-width="0.5"/>' +
+                '</svg>';
+              return L.divIcon({
+                html: svg,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                className: 'aircraft-icon'
+              });
+            }
+
+            // Fetch live flight data from OpenSky Network
+            function updateFlights() {
+              var bounds = map.getBounds();
+              var lamin = bounds.getSouth();
+              var lamax = bounds.getNorth();
+              var lomin = bounds.getWest();
+              var lomax = bounds.getEast();
+
+              // OpenSky API endpoint (no auth required for basic usage)
+              var url = 'https://opensky-network.org/api/states/all?lamin='+lamin+'&lamax='+lamax+'&lomin='+lomin+'&lomax='+lomax;
+
+              fetch(url)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                  if (!data.states) return;
+                  
+                  var activeIcao24 = {};
+                  
+                  // Update or create markers for each aircraft
+                  data.states.forEach(function(state) {
+                    var icao24 = state[0];
+                    var callsign = state[1] ? state[1].trim() : 'Unknown';
+                    var lat = state[6];
+                    var lon = state[5];
+                    var altitude = state[7];
+                    var heading = state[10] || 0;
+                    var velocity = state[9] || 0;
+                    
+                    if (lat === null || lon === null) return;
+                    
+                    activeIcao24[icao24] = true;
+                    
+                    if (aircraftMarkers[icao24]) {
+                      // Update existing marker
+                      aircraftMarkers[icao24].setLatLng([lat, lon]);
+                      aircraftMarkers[icao24].setIcon(createAircraftIcon(heading || 0));
+                    } else {
+                      // Create new marker
+                      var marker = L.marker([lat, lon], {
+                        icon: createAircraftIcon(heading || 0)
+                      }).bindPopup('<strong>'+callsign+'</strong><br>Altitude: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'m/s');
+                      marker.addTo(map);
+                      aircraftMarkers[icao24] = marker;
+                    }
+                  });
+                  
+                  // Remove markers for aircraft no longer in view
+                  Object.keys(aircraftMarkers).forEach(function(icao24) {
+                    if (!activeIcao24[icao24]) {
+                      map.removeLayer(aircraftMarkers[icao24]);
+                      delete aircraftMarkers[icao24];
+                    }
+                  });
+                })
+                .catch(function(err) {
+                  console.warn('Failed to fetch flight data:', err);
+                });
+            }
+
+            // Update flights on map move/zoom and every 5 seconds
+            map.on('moveend', updateFlights);
+            map.on('zoomend', updateFlights);
+            updateFlights(); // Initial fetch
+            setInterval(updateFlights, 5000); // Refresh every 5 seconds
+
           } catch (err) {
             // If Leaflet is not loaded, log the error
             console.warn('Leaflet failed to initialize', err);
