@@ -22,9 +22,24 @@
     .back{ margin-top:18px }
     @media (max-width:640px){ .panel{ padding:20px } }
     @keyframes bgFloat1{ 0%{ background-position:0% 50% } 50%{ background-position:100% 50% } 100%{ background-position:0% 50% } }    @keyframes bgFloat2{ 0%{ background-position:100% 60% } 50%{ background-position:0% 40% } 100%{ background-position:100% 60% } }
+
+    /* Background video styles (same behavior as index) */
+    .bg-video-container { position: fixed; top:0; left:0; width:100%; height:100%; z-index:-2; overflow:hidden; pointer-events:none }
+    .bg-video { width:100%; height:100%; object-fit:cover; object-position:center; display:block }
+    .bg-overlay { position:fixed; inset:0; background: linear-gradient(rgba(4,8,20,0.28), rgba(4,8,20,0.28)); z-index:-1; pointer-events:none }
+    .bg-video-fallback { position:fixed; inset:0; z-index:-3; background-image: linear-gradient(var(--bg-layer1-angle), var(--bg-left), var(--bg-right)), linear-gradient(var(--bg-layer2-angle), rgba(255,255,255,0.04), rgba(255,255,255,0.02)); background-size:var(--bg-size); animation: bgFloat1 var(--bg-dur1) linear infinite, bgFloat2 var(--bg-dur2) linear infinite }
+    @media (max-width:700px), (prefers-reduced-motion: reduce) { .bg-video { display:none } .bg-overlay { background:transparent } }
   </style>
 </head>
 <body>
+  <!-- Background video with fallback gradient -->
+  <div class="bg-video-container">
+    <video class="bg-video" autoplay muted loop playsinline disablePictureInPicture preload="metadata" aria-hidden="true">
+      <source src="background.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div class="bg-overlay" aria-hidden="true"></div>
+  <div class="bg-video-fallback" aria-hidden="true"></div>
   <nav class="site-nav" role="navigation">
     <div class="nav-inner">
       <a class="brand" href="index.html">Manya</a>
@@ -39,37 +54,6 @@
       <div class="back"><a href="index.html">← Back to Home</a></div>
     </div>
   </main>
-  <script>
-    (function(){
-      var root = document.documentElement;
-      function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
-      function pickHue(base, spread){var h = (base + (Math.random()-0.5)*spread)|0; return h}
-      function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)'}
-      function randomizeBg(){
-        var h1 = pickHue(215, 30);
-        var h2 = pickHue(195, 40);
-        var s1 = rand(70,90);
-        var s2 = rand(60,85);
-        var l1 = rand(28,48);
-        var l2 = rand(40,58);
-        var left = hsl(h1,s1,l1);
-        var right = hsl(h2,s2,l2);
-        root.style.setProperty('--bg-left', left);
-        root.style.setProperty('--bg-right', right);
-        var a1 = rand(0,360)+'deg';
-        var a2 = rand(0,360)+'deg';
-        root.style.setProperty('--bg-layer1-angle', a1);
-        root.style.setProperty('--bg-layer2-angle', a2);
-        var d1 = rand(30,90)+'s';
-        var d2 = rand(40,120)+'s';
-        root.style.setProperty('--bg-dur1', d1);
-        root.style.setProperty('--bg-dur2', d2);
-        var size = rand(160,420)+'% 240%';
-        root.style.setProperty('--bg-size', size);
-      }
-      randomizeBg();
-      setInterval(randomizeBg, 14000 + Math.random()*8000);
-    })();
-  </script>
+  <!-- Background randomizer removed to keep background static -->
 </body>
 </html>

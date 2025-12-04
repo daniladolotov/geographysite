@@ -7,6 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <style>
       :root{
         /* Blue & White theme (Yandex Music-like) */
@@ -94,14 +97,24 @@
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: -1;
+        z-index: -2; /* below overlay */
         overflow: hidden;
+        pointer-events: none;
       }
       .bg-video {
         width: 100%;
         height: 100%;
         object-fit: cover;
         object-position: center;
+        display: block;
+      }
+      /* subtle overlay above video to keep content readable */
+      .bg-overlay {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(rgba(4,8,20,0.28), rgba(4,8,20,0.28));
+        z-index: -1; /* above video, below content */
+        pointer-events: none;
       }
       .bg-video-fallback {
         position: fixed;
@@ -109,12 +122,18 @@
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: -2;
+        z-index: -3;
         background-image:
           linear-gradient(var(--bg-layer1-angle), var(--bg-left), var(--bg-right)),
           linear-gradient(var(--bg-layer2-angle), rgba(255,255,255,0.04), rgba(255,255,255,0.02));
         background-size: var(--bg-size);
         animation: bgFloat1 var(--bg-dur1) linear infinite, bgFloat2 var(--bg-dur2) linear infinite;
+      }
+
+      /* Performance / accessibility: hide video on small screens and when user prefers reduced motion */
+      @media (max-width:700px), (prefers-reduced-motion: reduce) {
+        .bg-video { display:none; }
+        .bg-overlay { background: transparent; }
       }
       .title{
         font-size: clamp(32px, 10vw, 120px);
@@ -171,15 +190,18 @@
     </style>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   </head>
   <body>
       <!-- Background video with fallback gradient -->
       <div class="bg-video-container">
-        <video class="bg-video" autoplay muted loop playsinline disablePictureInPicture>
+        <video class="bg-video" autoplay muted loop playsinline disablePictureInPicture preload="metadata" aria-hidden="true">
           <source src="background.mp4" type="video/mp4">
         </video>
       </div>
-      <div class="bg-video-fallback"></div>
+      <div class="bg-overlay" aria-hidden="true"></div>
+      <div class="bg-video-fallback" aria-hidden="true"></div>
       
       <nav class="site-nav" role="navigation">
           <div class="nav-inner">
@@ -208,6 +230,11 @@
         <div class="card" style="width:100%; max-width:1100px;">
           <h2 style="margin:0; font-size:clamp(18px,4vw,30px);">Interactive map</h2>
           <div id="map" style="margin-top:1rem;"></div>
+          <div id="flight-settings" style="margin-top:10px; display:flex; gap:8px; align-items:center; font-size:14px; color:var(--muted);">
+            <label for="maxFlightsRange" style="color:var(--muted);">Max flights</label>
+            <input id="maxFlightsRange" type="range" min="1" max="500" value="50" style="vertical-align:middle;" />
+            <span id="maxFlightsVal" style="min-width:36px; text-align:left; color:var(--muted);">50</span>
+          </div>
         </div>
       </section>
 
@@ -227,12 +254,13 @@
           try {
             var defaultLatLng = [51.505, -0.09]; // London
             var map = L.map('map', { scrollWheelZoom:true }).setView(defaultLatLng, 13);
-            var aircraftMarkers = {}; // Store aircraft markers by ICAO24 code
             var flightsEnabled = false; // Flight layer toggle state
             var flightUpdateInterval = null; // Interval handle for cleanup
             var lastFetchTime = 0; // Throttle API requests
             var minUpdateInterval = 8000; // Min 8 seconds between updates
             var consecutiveErrors = 0; // Track consecutive API errors for backoff
+            // Maximum number of flight markers to display (user-configurable via UI)
+            var maxFlights = 50;
             
             // Base layers
             var cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -247,11 +275,32 @@
             cartoPositron.addTo(map);
             var baseMaps = { 'CartoDB Positron': cartoPositron, 'OpenStreetMap': openStreet };
             
-            // Create a feature group for flights (toggleable layer)
-            var flightsLayer = L.featureGroup([]);
+            // Create a clustered flights layer (handles many markers efficiently)
+            var flightsLayer = L.markerClusterGroup({
+              chunkedLoading: true,
+              chunkProgress: function(processed, total, elapsed) {
+                if (elapsed > 1000) console.log('MarkerCluster chunked loading: ' + processed + '/' + total);
+              },
+              showCoverageOnHover: false,
+              maxClusterRadius: 50,
+              disableClusteringAtZoom: 12
+            });
             var overlayMaps = { 'Live Flights': flightsLayer };
-            
             var layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+
+            // Wire up the max flights UI control
+            (function(){
+              var maxRange = document.getElementById('maxFlightsRange');
+              var maxVal = document.getElementById('maxFlightsVal');
+              if (maxRange && maxVal) {
+                maxFlights = parseInt(maxRange.value, 10) || maxFlights;
+                maxVal.textContent = maxFlights;
+                maxRange.addEventListener('input', function(){
+                  maxFlights = parseInt(this.value, 10) || 1;
+                  maxVal.textContent = maxFlights;
+                });
+              }
+            })();
 
             // Add marker and popup
             var marker = L.marker(defaultLatLng).addTo(map);
@@ -320,10 +369,10 @@
                   if (!data.ac && !Array.isArray(data)) return;
                   
                   var aircraft = data.ac || data;
-                  var activeIcao24 = {};
-                  
-                  // Update or create markers for each aircraft
-                  aircraft.forEach(function(state) {
+                  var markers = [];
+                  // Build marker list (we'll add them in bulk to the cluster)
+                  for (var i = 0; i < aircraft.length && markers.length < maxFlights; i++) {
+                    var state = aircraft[i];
                     var icao24 = state.icao;
                     var callsign = state.flight ? state.flight.trim() : 'Unknown';
                     var lat = state.lat;
@@ -331,86 +380,44 @@
                     var altitude = state.alt_baro || state.alt_geom || 0;
                     var heading = state.track || 0;
                     var velocity = state.gs || 0;
-                    
-                    if (lat === null || lat === undefined || lon === null || lon === undefined) return;
-                    
-                    activeIcao24[icao24] = true;
-                    
-                    if (aircraftMarkers[icao24]) {
-                      aircraftMarkers[icao24].setLatLng([lat, lon]);
-                      aircraftMarkers[icao24].setIcon(createAircraftIcon(heading || 0));
-                    } else {
-                      if (map.hasLayer(flightsLayer)) {
-                        var popupText = '<strong>'+callsign+'</strong><br>Alt: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'kt';
-                        var aircraftMarker = L.marker([lat, lon], {
-                          icon: createAircraftIcon(heading || 0)
-                        }).bindPopup(popupText);
-                        flightsLayer.addLayer(aircraftMarker);
-                        aircraftMarkers[icao24] = aircraftMarker;
-                      }
-                    }
-                  });
-                  
-                  console.log('✈️ Updated ' + Object.keys(activeIcao24).length + ' aircraft');
-                  
-                  // Remove markers for aircraft no longer in view
-                  Object.keys(aircraftMarkers).forEach(function(icao24) {
-                    if (!activeIcao24[icao24]) {
-                      flightsLayer.removeLayer(aircraftMarkers[icao24]);
-                      delete aircraftMarkers[icao24];
-                    }
-                  });
+                    if (lat === null || lat === undefined || lon === null || lon === undefined) continue;
+                    var popupText = '<strong>'+callsign+'</strong><br>Alt: '+Math.round(altitude)+'m<br>Speed: '+Math.round(velocity)+'kt';
+                    var m = L.marker([lat, lon], { icon: createAircraftIcon(heading || 0) }).bindPopup(popupText);
+                    markers.push(m);
+                  }
+                  // Replace layer content in bulk for performance
+                  flightsLayer.clearLayers();
+                  if (markers.length) flightsLayer.addLayers(markers);
+                  console.log('✈️ Updated ' + markers.length + ' aircraft (clustered)');
                 })
                 .catch(function(err) {
                   if (err.name !== 'AbortError') {
                     console.warn('⚠️ Flight API: ' + err.message + ' - Using demo data');
-                    // Fallback to demo flights if API fails
+                    // Fallback to demo flights if API fails: build demo markers
                     var demoFlights = generateDemoFlights(map.getBounds());
-                    var activeIcao24 = {};
-                    
-                    demoFlights.forEach(function(state) {
-                      var icao24 = state.icao;
-                      activeIcao24[icao24] = true;
-                      
-                      if (aircraftMarkers[icao24]) {
-                        aircraftMarkers[icao24].setLatLng([state.lat, state.lon]);
-                        aircraftMarkers[icao24].setIcon(createAircraftIcon(state.track || 0));
-                      } else {
-                        if (map.hasLayer(flightsLayer)) {
-                          var popupText = '<strong>'+state.flight+'</strong> (Demo)<br>Alt: '+Math.round(state.alt_baro)+'m<br>Speed: '+Math.round(state.gs)+'kt';
-                          var aircraftMarker = L.marker([state.lat, state.lon], {
-                            icon: createAircraftIcon(state.track || 0)
-                          }).bindPopup(popupText);
-                          flightsLayer.addLayer(aircraftMarker);
-                          aircraftMarkers[icao24] = aircraftMarker;
-                        }
-                      }
-                    });
-                    
-                    Object.keys(aircraftMarkers).forEach(function(icao24) {
-                      if (!activeIcao24[icao24]) {
-                        flightsLayer.removeLayer(aircraftMarkers[icao24]);
-                        delete aircraftMarkers[icao24];
-                      }
-                    });
+                    var markers = [];
+                    for (var j = 0; j < demoFlights.length && markers.length < maxFlights; j++) {
+                      var state = demoFlights[j];
+                      var popupText = '<strong>'+state.flight+'</strong> (Demo)<br>Alt: '+Math.round(state.alt_baro)+'m<br>Speed: '+Math.round(state.gs)+'kt';
+                      var aircraftMarker = L.marker([state.lat, state.lon], { icon: createAircraftIcon(state.track || 0) }).bindPopup(popupText);
+                      markers.push(aircraftMarker);
+                    }
+                    flightsLayer.clearLayers();
+                    if (markers.length) flightsLayer.addLayers(markers);
                   }
                 });
             }
 
             // Clear all flight markers
             function clearAllFlights() {
-              Object.keys(aircraftMarkers).forEach(function(icao24) {
-                flightsLayer.removeLayer(aircraftMarkers[icao24]);
-              });
-              aircraftMarkers = {};
+              flightsLayer.clearLayers();
             }
 
             // Generate demo flight data (for testing/fallback)
             function generateDemoFlights(bounds) {
               var flights = [];
               var callsigns = ['BA123', 'LH456', 'AF789', 'UA234', 'DL567', 'AA890', 'SQ123', 'QF456', 'EK789', 'TK234'];
-              
-              for (var i = 0; i < 8; i++) {
+              for (var i = 0; i < Math.max(1, Math.min(maxFlights, 200)); i++) {
                 flights.push({
                   icao: 'demo' + i,
                   flight: callsigns[i % callsigns.length],
@@ -430,7 +437,8 @@
                 flightsEnabled = true;
                 updateFlights();
                 if (flightUpdateInterval) clearInterval(flightUpdateInterval);
-                flightUpdateInterval = setInterval(updateFlights, 5000); // Refresh every 5 seconds
+                // Use the configured minUpdateInterval for periodic refresh; updateFlights itself throttles too
+                flightUpdateInterval = setInterval(updateFlights, Math.max(minUpdateInterval, 8000));
               }
             });
 
@@ -462,43 +470,6 @@
             if(title){ setTimeout(function(){ title.classList.remove('hide'); title.classList.add('show'); }, 80); }
           })();
       </script>
-      <script>
-        // Background randomizer: random angles, durations and subtle color shifts
-        (function(){
-          var root = document.documentElement;
-          function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
-          function pickHue(base, spread){var h = (base + (Math.random()-0.5)*spread)|0; return h}
-          function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)'}
-          function randomizeBg(){
-            // choose base hues around blue
-            var h1 = pickHue(215, 30);
-            var h2 = pickHue(195, 40);
-            var s1 = rand(70,90);
-            var s2 = rand(60,85);
-            var l1 = rand(28,48);
-            var l2 = rand(40,58);
-            var left = hsl(h1,s1,l1);
-            var right = hsl(h2,s2,l2);
-            root.style.setProperty('--bg-left', left);
-            root.style.setProperty('--bg-right', right);
-            // angles and durations
-            var a1 = rand(0,360)+'deg';
-            var a2 = rand(0,360)+'deg';
-            root.style.setProperty('--bg-layer1-angle', a1);
-            root.style.setProperty('--bg-layer2-angle', a2);
-            var d1 = rand(30,90)+'s';
-            var d2 = rand(40,120)+'s';
-            root.style.setProperty('--bg-dur1', d1);
-            root.style.setProperty('--bg-dur2', d2);
-            // size
-            var size = rand(160,420)+'% 240%';
-            root.style.setProperty('--bg-size', size);
-          }
-          // Randomize once on load
-          randomizeBg();
-          // Every 14-22 seconds change some parameters to keep it lively
-          setInterval(randomizeBg, 14000 + Math.random()*8000);
-        })();
-      </script>
+      <!-- Background randomizer removed to keep background static -->
   </body>
 </html>
