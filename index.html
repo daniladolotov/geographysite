@@ -107,6 +107,11 @@
         object-fit: cover;
         object-position: center;
         display: block;
+        animation: bgVideoFade 0.5s ease-out;
+      }
+      @keyframes bgVideoFade {
+        from { opacity: 0.95; }
+        to { opacity: 1; }
       }
       /* subtle overlay above video to keep content readable */
       .bg-overlay {
@@ -249,6 +254,25 @@
       </section>
 
       <script>
+        // Smooth video loop transitions
+        (function(){
+          var video = document.querySelector('.bg-video');
+          if (video) {
+            video.addEventListener('ended', function(){
+              video.currentTime = 0;
+              video.play();
+            });
+            // Alternative: fade effect on loop for visual smoothness
+            video.addEventListener('play', function(){
+              var container = document.querySelector('.bg-video-container');
+              if (container) container.style.animation = 'none';
+              setTimeout(function(){
+                if (container) container.style.animation = 'bgVideoFade 0.4s ease-out';
+              }, 10);
+            });
+          }
+        })();
+
         // Leaflet map with live flight data from OpenSky Network (toggleable layer)
         (function(){
           try {
